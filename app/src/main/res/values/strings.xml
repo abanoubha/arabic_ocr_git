@@ -15,4 +15,5 @@
     <string name="ocr_arrow">ocr arrow</string>
     <string name="get_image_from_gallery">get image from gallery</string>
     <string name="arrow_to_camera_icon">arrow to camera icon</string>
+    <string name="pdf">Convert PDF to Text</string>
 </resources>
