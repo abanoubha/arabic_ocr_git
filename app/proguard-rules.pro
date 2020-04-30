@@ -22,3 +22,5 @@
 -keep class cz.adaptech.** { *; }
 -keep class com.googlecode.tesseract.android.** {*;}
 -keep class com.googlecode.leptonica.android.** {*;}
+# output the rules used in the shrinking
+-printconfiguration /Users/mbp/AndroidStudioProjects/ArabicOCR/arabic-ocr-rules.txt
