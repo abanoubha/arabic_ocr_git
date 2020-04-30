@@ -16,6 +16,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
+import com.arasthel.asyncjob.AsyncJob;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.InterstitialAd;
@@ -27,6 +28,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.theartofdev.edmodo.cropper.CropImage;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.WorkerThread;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
@@ -36,8 +38,10 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -90,7 +94,9 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     //make ad visible
                     if (isNetworkAvailable()) { adView.setVisibility(View.VISIBLE); }
-                    runOCR();
+
+                    runOCR(); //runOCRTest1(); //runOCR();
+
                     deleteAllPhotos();
                 }
             }
@@ -414,8 +420,10 @@ public class MainActivity extends AppCompatActivity {
     //background OCR task
     private static class OcrAsyncTask extends AsyncTask<Bitmap, Integer, String> {
         private WeakReference<MainActivity> activityWeakReference;
+        long startTime;
 
         OcrAsyncTask(MainActivity activity) {
+            startTime = System.currentTimeMillis();
             activityWeakReference = new WeakReference<>(activity);
         }
 
@@ -450,6 +458,9 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             activity.resultTextView.setText(s);
+
+            long endTime = System.currentTimeMillis();
+            Log.d("class benchmark", "onClick: " + (endTime-startTime));
         }
     }
 
@@ -469,5 +480,51 @@ public class MainActivity extends AppCompatActivity {
 //            Notify("Nothing shared");
 //            //Log.e(TAG, "onSharedIntent: nothing shared" );
 //        }
+    }
+
+
+    ////////////////// TESTING ///////////////////////
+    private void runOCRTest1() {
+        resultTextView.setText(getString(R.string.identifying));
+        resultTextView.setVisibility(View.VISIBLE);
+        isDone = true;
+        fab.setImageDrawable(
+                AppCompatResources.getDrawable(MainActivity.this, R.drawable.ic_copy)
+        );
+        pressOCR.setText(getString(R.string.copyHint));
+
+        final long startTime = System.currentTimeMillis();
+        new AsyncJob.AsyncJobBuilder<String>()
+                .doInBackground(new AsyncJob.AsyncAction<String>() {
+                    @Override
+                    public String doAsync() {
+                        OcrManager manager = new OcrManager();
+                        manager.initAPI();
+                        return manager.startRecognize(bmp);
+                    }
+                })
+                .doWhenFinished(new AsyncJob.AsyncResultAction<String>() {
+                    @Override
+                    public void onResult(String result) {
+                        resultTextView.setText(result);
+                        long endTime = System.currentTimeMillis();
+                        Log.d("lib benchmark", "onClick: " + (endTime-startTime));
+                    }
+                }).create().start();
+
+//        new Thread(new Runnable() {
+//            public void run() {
+//                OcrManager manager = new OcrManager();
+//                manager.initAPI();
+//                final String recTxt = manager.startRecognize(bmp);
+//
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        resultTextView.setText(recTxt);
+//                    }
+//                });
+//            }
+//        });
     }
 }
