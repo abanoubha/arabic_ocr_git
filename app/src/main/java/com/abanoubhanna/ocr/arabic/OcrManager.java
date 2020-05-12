@@ -9,7 +9,11 @@ class OcrManager {
     void initAPI() {
         baseAPI = new TessBaseAPI();
         //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK);
-        baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_ONLY);
+
+        baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
+        //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_OSD);
+        //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_ONLY); // what i used prev
+
         // after copy, my path to trainned data is getExternalFilesDir(null)+"/tessdata/"+"ara.traineddata";
         // but init() function just need parent folder path of "tessdata", so it is getExternalFilesDir(null)
         String dataPath = MainApplication.instance.getTessDataParentDirectory();
@@ -28,7 +32,7 @@ class OcrManager {
         baseAPI.setImage(bitmap);
         String OCRedText;
         try {
-            OCRedText = baseAPI.getUTF8Text();
+            OCRedText = baseAPI.getUTF8Text().trim(); //trim extracted text
         }catch (Exception e){
             return "ERROR 120";
         }

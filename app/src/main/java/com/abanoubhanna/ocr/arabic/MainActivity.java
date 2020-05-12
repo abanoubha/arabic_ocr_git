@@ -1,5 +1,12 @@
 package com.abanoubhanna.ocr.arabic;
 
+/*
+factors:
+- scantailor , imagmagick , textcleaner
+- remove noise
+- increase dpi to 300dpi : bitmap.setDensity(300);
+ */
+
 import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -95,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
                     //make ad visible
                     if (isNetworkAvailable()) { adView.setVisibility(View.VISIBLE); }
 
-                    runOCR(); //runOCRTest1(); //runOCR();
+                    runOCR(); //runOCRTest1();
 
                     deleteAllPhotos();
                 }
@@ -180,6 +187,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void runOCR() {
+        bmp.setDensity(300); // re-assure that DPI is 300
+
         task = new OcrAsyncTask(MainActivity.this);
         task.execute(bmp);
 
