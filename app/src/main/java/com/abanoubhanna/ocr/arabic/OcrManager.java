@@ -9,7 +9,6 @@ class OcrManager {
     void initAPI() {
         baseAPI = new TessBaseAPI();
         //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK);
-
         //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
         //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_OSD);
         baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_ONLY); // what i used prev

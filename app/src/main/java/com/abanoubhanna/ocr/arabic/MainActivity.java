@@ -20,6 +20,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -102,7 +103,11 @@ public class MainActivity extends AppCompatActivity {
                     //make ad visible
                     if (isNetworkAvailable()) { adView.setVisibility(View.VISIBLE); }
 
-                    bmp.setDensity(300); // re-assure that DPI is 300
+                    bmp = imageDenoise(bmp);
+                    //bmp.setDensity(300); // re-assure that DPI is 300
+                    if (bmp.getDensity() < 300){
+                        bmp = upscale(bmp);
+                    }
 
                     bmp = toGrayscale(bmp);
                     ocrImage.setImageBitmap(bmp);
@@ -112,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
                         ocrImage.setImageBitmap(bmp);
                     }
 
-                    runOCR(); //runOCRTest1();
+                    runOCR();
 
                     deleteAllPhotos();
                 }
@@ -146,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
         AdRequest adRequest = new AdRequest.Builder().build();
 
         //interstitial
-        MobileAds.initialize(this, "ca-app-pub-4971969455307153~5598283529");
+        MobileAds.initialize(this);
         mInterstitialAd = new InterstitialAd(this);
         mInterstitialAd.setAdUnitId("ca-app-pub-4971969455307153/9016275042");
 
@@ -307,6 +312,7 @@ public class MainActivity extends AppCompatActivity {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE};
         ActivityCompat.requestPermissions(this, cameraPermission, CAMERA_REQUEST_CODE);
     }
+
     private boolean checkCameraPermission(){
         boolean result0 = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CAMERA) == (PackageManager.PERMISSION_GRANTED);
@@ -499,7 +505,7 @@ public class MainActivity extends AppCompatActivity {
         height = bmpOriginal.getHeight();
         width = bmpOriginal.getWidth();
 
-        Bitmap bmpGrayscale = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        Bitmap bmpGrayscale = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bmpGrayscale);
         Paint paint = new Paint();
         ColorMatrix cm = new ColorMatrix();
@@ -552,5 +558,52 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return out;
+    }
+
+    Bitmap imageDenoise(Bitmap inbmp){
+        int w = inbmp.getWidth();
+        int h = inbmp.getHeight();
+        Bitmap out = Bitmap.createBitmap(w, h, inbmp.getConfig());
+
+        for (int x = 0; x < w; x++) {
+            for (int y = 0; y < h; y++) {
+                int pixel = inbmp.getPixel(x, y);
+                if (Color.red(pixel) < 162 && Color.green(pixel) < 162 && Color.blue(pixel) < 162)
+                    out.setPixel(x, y, Color.BLACK);
+                else if (Color.red(pixel) > 162 && Color.green(pixel) > 162 && Color.blue(pixel) > 162)
+                    out.setPixel(x, y, Color.WHITE);
+            }
+        }
+        return out;
+    }
+
+    public Bitmap upscale(Bitmap inbmp) {
+        Bitmap newBitmap = null;
+
+        try {
+            //width = 500 and height = 500
+            //int width = inbmp.getWidth();
+            //int height = inbmp.getHeight();
+            int newWidth = (int)(inbmp.getWidth() * 1.5);
+            int newHeight = (int)(inbmp.getHeight() * 1.5);
+
+            // calculate the scale - in this case = 2.4f
+            float scaleWidth = 1.5f;
+            float scaleHeight = 1.5f;
+
+            // create matrix for the manipulation
+            Matrix matrix = new Matrix();
+
+            // resize the bitmap 2.4f, 2.4f
+            matrix.postScale(scaleWidth, scaleHeight);
+
+            // recreate the new Bitmap
+            newBitmap = Bitmap.createBitmap(inbmp, 0, 0, newWidth, newHeight, matrix, true);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return newBitmap;
     }
 }
