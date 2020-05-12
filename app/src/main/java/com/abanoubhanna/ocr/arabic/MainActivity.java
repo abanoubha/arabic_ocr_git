@@ -16,14 +16,17 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Paint;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
-import com.arasthel.asyncjob.AsyncJob;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.InterstitialAd;
@@ -35,7 +38,6 @@ import com.google.android.material.snackbar.Snackbar;
 import com.theartofdev.edmodo.cropper.CropImage;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.WorkerThread;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
@@ -45,10 +47,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import android.os.Environment;
-import android.os.Handler;
 import android.provider.MediaStore;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -101,6 +101,16 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     //make ad visible
                     if (isNetworkAvailable()) { adView.setVisibility(View.VISIBLE); }
+
+                    bmp.setDensity(300); // re-assure that DPI is 300
+
+                    bmp = toGrayscale(bmp);
+                    ocrImage.setImageBitmap(bmp);
+
+                    if (isBgBlack(bmp)){
+                        bmp = invertColors(bmp);
+                        ocrImage.setImageBitmap(bmp);
+                    }
 
                     runOCR(); //runOCRTest1();
 
@@ -187,8 +197,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void runOCR() {
-        bmp.setDensity(300); // re-assure that DPI is 300
-
         task = new OcrAsyncTask(MainActivity.this);
         task.execute(bmp);
 
@@ -429,10 +437,8 @@ public class MainActivity extends AppCompatActivity {
     //background OCR task
     private static class OcrAsyncTask extends AsyncTask<Bitmap, Integer, String> {
         private WeakReference<MainActivity> activityWeakReference;
-        long startTime;
 
         OcrAsyncTask(MainActivity activity) {
-            startTime = System.currentTimeMillis();
             activityWeakReference = new WeakReference<>(activity);
         }
 
@@ -467,9 +473,6 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             activity.resultTextView.setText(s);
-
-            long endTime = System.currentTimeMillis();
-            Log.d("class benchmark", "onClick: " + (endTime-startTime));
         }
     }
 
@@ -491,49 +494,63 @@ public class MainActivity extends AppCompatActivity {
 //        }
     }
 
+    Bitmap toGrayscale(Bitmap bmpOriginal) {
+        int width, height;
+        height = bmpOriginal.getHeight();
+        width = bmpOriginal.getWidth();
 
-    ////////////////// TESTING ///////////////////////
-    private void runOCRTest1() {
-        resultTextView.setText(getString(R.string.identifying));
-        resultTextView.setVisibility(View.VISIBLE);
-        isDone = true;
-        fab.setImageDrawable(
-                AppCompatResources.getDrawable(MainActivity.this, R.drawable.ic_copy)
-        );
-        pressOCR.setText(getString(R.string.copyHint));
+        Bitmap bmpGrayscale = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        Canvas c = new Canvas(bmpGrayscale);
+        Paint paint = new Paint();
+        ColorMatrix cm = new ColorMatrix();
+        cm.setSaturation(0);
+        ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
+        paint.setColorFilter(f);
+        c.drawBitmap(bmpOriginal, 0, 0, paint);
+        return bmpGrayscale;
+    }
 
-        final long startTime = System.currentTimeMillis();
-        new AsyncJob.AsyncJobBuilder<String>()
-                .doInBackground(new AsyncJob.AsyncAction<String>() {
-                    @Override
-                    public String doAsync() {
-                        OcrManager manager = new OcrManager();
-                        manager.initAPI();
-                        return manager.startRecognize(bmp);
-                    }
-                })
-                .doWhenFinished(new AsyncJob.AsyncResultAction<String>() {
-                    @Override
-                    public void onResult(String result) {
-                        resultTextView.setText(result);
-                        long endTime = System.currentTimeMillis();
-                        Log.d("lib benchmark", "onClick: " + (endTime-startTime));
-                    }
-                }).create().start();
+    boolean isBgBlack(Bitmap inbmp){
+        boolean dark=false;
 
-//        new Thread(new Runnable() {
-//            public void run() {
-//                OcrManager manager = new OcrManager();
-//                manager.initAPI();
-//                final String recTxt = manager.startRecognize(bmp);
-//
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        resultTextView.setText(recTxt);
-//                    }
-//                });
-//            }
-//        });
+        float darkThreshold = inbmp.getWidth()*inbmp.getHeight()*0.45f;
+        int darkPixels=0;
+
+        int[] pixels = new int[bmp.getWidth()*inbmp.getHeight()];
+        inbmp.getPixels(pixels,0,inbmp.getWidth(),0,0,inbmp.getWidth(),inbmp.getHeight());
+
+        for (int color : pixels) {
+            int r = Color.red(color);
+            int g = Color.green(color);
+            int b = Color.blue(color);
+            double luminance = (0.299 * r + 0.0f + 0.587 * g + 0.0f + 0.114 * b + 0.0f);
+            if (luminance < 150) {
+                darkPixels++;
+            }
+        }
+
+        if (darkPixels >= darkThreshold) {
+            dark = true;
+        }
+        return dark;
+    }
+
+    Bitmap invertColors(Bitmap inbmp){
+        int w = inbmp.getWidth();
+        int h = inbmp.getHeight();
+        Bitmap out = Bitmap.createBitmap(w, h, inbmp.getConfig());
+
+        for (int x = 0; x < w; ++x) {
+            for (int y = 0; y < h; ++y) {
+                int color = inbmp.getPixel(x, y);
+                int r = Color.red(color);
+                int g = Color.green(color);
+                int b = Color.blue(color);
+                int avg = (r + g + b) / 3;
+                int newColor = Color.argb(255, 255 - avg, 255 - avg, 255 - avg);
+                out.setPixel(x, y, newColor);
+            }
+        }
+        return out;
     }
 }

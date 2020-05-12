@@ -19,6 +19,5 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
--keep class cz.adaptech.** { *; }
 -keep class com.googlecode.tesseract.android.** {*;}
 -keep class com.googlecode.leptonica.android.** {*;}

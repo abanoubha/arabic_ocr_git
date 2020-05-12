@@ -10,9 +10,9 @@ class OcrManager {
         baseAPI = new TessBaseAPI();
         //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK);
 
-        baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
+        //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
         //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_OSD);
-        //baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_ONLY); // what i used prev
+        baseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_ONLY); // what i used prev
 
         // after copy, my path to trainned data is getExternalFilesDir(null)+"/tessdata/"+"ara.traineddata";
         // but init() function just need parent folder path of "tessdata", so it is getExternalFilesDir(null)
